@@ -1,24 +1,36 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { Actions, Channels } from ".";
-/* https://stackoverflow.com/questions/69019873/how-can-i-get-typed-object-entries-and-object-fromentries-in-typescript */
-export const typeSafeObjectFromEntries = <
+import { type Actions, type Channels } from "./actions";
+/* DO NOT IMPORT CONSTANTS INTO THIS FILE */
+/* UPDATE THIS OBJECT WHENEVER A NEW CHANNEL IS ADDED */
+const CHANNELS = Object.keys({
+  addNumbers: null,
+  someAsyncFunction: null,
+  addUser: null,
+  getCustomerCount: null,
+  qrycboProjectList: null,
+  qryCountHUC: null,
+  getGasDay: null,
+  getWeatherZone: null,
+  gas_Day_HV_SG_Query: null,
+  maxLoadQuery: null,
+  getDesignDayDemand: null,
+  qryWeatherTemperatureForGasDay: null,
+  getInterconnectInfo: null,
+  INT_INFO_Query: null,
+} satisfies Record<Channels, null>);
+const typeSafeObjectFromEntries = <
   const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
 >(
   entries: T
 ): { [K in T[number] as K[0]]: K[1] } => {
   return Object.fromEntries(entries) as { [K in T[number] as K[0]]: K[1] };
 };
-const channelArray: Record<Channels, null> = {
-  addNumbers: null,
-  subNumbers: null,
-};
-const CHANNELS = Object.keys(channelArray) as Readonly<Channels[]>;
 
 const api0 = CHANNELS.map((channel) => [
   channel,
   async (...args: unknown[]) => await ipcRenderer.invoke(channel, ...args),
 ]) as [PropertyKey, (...args: unknown[]) => unknown][];
-export const api = typeSafeObjectFromEntries(api0) as Actions;
+const api = typeSafeObjectFromEntries(api0) as Actions;
 console.log({ api });
 contextBridge.exposeInMainWorld("api", api);
 export type Api = typeof api;
