@@ -1,9 +1,34 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "node:path";
 import { prepareNext } from "sc-prepare-next";
-import { Model } from "sequelize";
 import { PORT } from "./constants";
 import { sequelize, User } from "./database";
+// import { balancePointTable } from "./database/schema";
+
+async function addNumbers(a: number, b: number): Promise<number> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(a + b);
+    }, 1000);
+  });
+}
+async function subNumbers(a: number, b: number): Promise<number> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(a - b);
+    }, 1000);
+  });
+}
+
+const actions = {
+  addNumbers,
+  subNumbers,
+} as const;
+
+export default actions;
+export type Actions = typeof actions;
+export type Channels = keyof typeof actions;
+const CHANNELS = Object.keys(actions) as Readonly<Channels[]>;
 
 /**
  * Creates the main application window.
@@ -68,6 +93,10 @@ app.whenReady().then(async () => {
       console.log("Database synced");
     });
 
+  // await db.$client
+  //   .sync()
+  //   .then((a) => console.log("Drizzle database synced", a));
+
   createWindow();
 
   app.on("activate", () => {
@@ -82,17 +111,26 @@ app.on("window-all-closed", () => {
 
 /* ++++++++++ code ++++++++++ */
 ipcMain.on("add-user", async (event, data: { dataValues: unknown }) => {
-  await User.create(data)
-    .then((data: Model) => {
-      event.returnValue = {
-        error: false,
-        data: data.dataValues,
-      };
-    })
-    .catch((error) => {
-      event.returnValue = {
-        error: true,
-        data: error,
-      };
-    });
+  try {
+    const res = await User.create(data);
+    console.log("User added: ", { res });
+    event.returnValue = {
+      error: false,
+      data: res.dataValues,
+    };
+  } catch (error) {
+    console.error("Error adding user:", error);
+    event.returnValue = {
+      error: true,
+      data: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 });
+/* Initialize IPC communication channels */
+for (const channel of CHANNELS) {
+  ipcMain.handle(
+    channel,
+    async (_, ...args) =>
+      await (actions[channel] as (...args: unknown[]) => unknown)(...args)
+  );
+}

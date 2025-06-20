@@ -21,7 +21,13 @@
     "strict": true,
     "target": "esnext",
     "outDir": "../dist/backend",
-    "removeComments": true
+    "removeComments": true,
+    /* Path Aliases */
+    "paths": {
+      "@/*": [
+        "./*",
+      ]
+    }
   },
   "exclude": [
     "node_modules"

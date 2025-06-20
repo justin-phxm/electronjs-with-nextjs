@@ -2,3 +2,5 @@
 /dist
 /out
 /src/.next
+**.env
+**.sqlite
